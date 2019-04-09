@@ -13,10 +13,10 @@ template<
 	class T,
 	class Compare = std::less<Key>
 > class map {
-private:
-
+public:
     typedef pair<const Key, T> value_type;
 
+private:
     class RBT {
     public:
         struct node {
@@ -123,6 +123,19 @@ private:
                     p = p->son[1];
                 }
             }
+        }
+
+        node* begin() {
+            if (_size == 0)
+                return nil;
+            node *p = root;
+            while (p->son[0] != nil)
+                p = p->son[0];
+            return p;
+        }
+
+        node *end() {
+            return nil;
         }
 
         void rotate(node *o) {
@@ -279,16 +292,16 @@ private:
 	 *       or it = map.end(); ++end();
 	 */
 
+public:
 	class iterator {
 	public:
 	    map *_map;
-	    RBT *rbt;
 	    typename RBT::node *p;
 
 	public:
-		iterator() : _map(nullptr), rbt(nullptr), p(nullptr) {}
-		iterator(const iterator &o) : _map(nullptr), rbt(o.rbt), p(o.p) {}
-		iterator(const map *&__map, const RBT *&_rbt, const typename RBT::node *&_p) : _map(__map), rbt(_rbt), p(_p) {}
+		iterator() : _map(nullptr), p(nullptr) {}
+		iterator(const iterator &o) : _map(nullptr), p(o.p) {}
+		iterator(const map *&__map, const RBT *&_rbt, const typename RBT::node *&_p) : _map(__map), p(_p) {}
 		/**
 		 * return a new iterator which pointer n-next elements
 		 *   even if there are not enough elements, just return the answer.
@@ -311,14 +324,24 @@ private:
 		iterator operator--(int) {
 		    if (*this == _map->begin())
 		        throw invalid_iterator();
-		    iterator res(*this);
-            p = p->last;
+            iterator res(*this);
+            if (p == _map->tr.nil) {
+                p = _map->tr.root;
+                while (p->son[1] != _map->tr.nil)
+                    p = p->son[1];
+		    } else
+                p = p->last;
             return res;
 		}
 		iterator &operator--() {
             if (*this == _map->begin())
                 throw invalid_iterator();
-            p = p->last;
+            if (p == _map->tr.nil) {
+                p = _map->tr.root;
+                while (p->son[1] != _map->tr.nil)
+                    p = p->son[1];
+            } else
+                p = p->last;
             return *this;
 		}
 
@@ -330,10 +353,10 @@ private:
 		}
 
         bool operator==(const iterator &o) const {
-            return _map == o._map && rbt == o.rbt && p == o.p;
+            return _map == o._map && p == o.p;
         }
         bool operator!=(const iterator &o) const {
-            return _map != o._map || rbt != o.rbt || p != o.p;
+            return _map != o._map || p != o.p;
         }
 	};
 	using const_iterator = iterator;
@@ -342,6 +365,10 @@ private:
     map(const map &other) = default;
     ~map() = default;
     map &operator=(const map &o) = default;
+
+    void clear() {
+        tr.clear(tr.root);
+    }
 
 	T& at(const Key &k) {
         typename RBT::node *p = tr.find(k);
@@ -362,7 +389,6 @@ private:
 	        return tr.insert(value_type(k, T()))->value.second;
 	    return p->value.second;
 	}
-
 	const T & operator[](const Key &k) const {
         const typename RBT::node *p = tr.find(k);
         if (p != tr.nil)
@@ -370,17 +396,22 @@ private:
         throw index_out_of_bound();
 	}
 
-	/**
-	 * return a iterator to the beginning
-	 */
-	iterator begin() {}
-	const_iterator cbegin() const {}
-	/**
-	 * return a iterator to the end
-	 * in fact, it returns past-the-end.
-	 */
-	iterator end() {}
-	const_iterator cend() const {}
+	iterator begin() {
+	    typename RBT::node *p = tr.begin();
+	    return iterator(this, p);
+	}
+	const_iterator cbegin() const {
+        typename RBT::node *p = tr.begin();
+        return const_iterator(this, p);
+	}
+	iterator end() {
+	    typename RBT::node *p = tr.end();
+	    return iterator(this, p);
+	}
+	const_iterator cend() const {
+        typename RBT::node *p = tr.end();
+        return const_iterator(this, p);
+	}
 
 	bool empty() const {
 	    return tr.size() == 0;
@@ -389,24 +420,29 @@ private:
 	    return tr.size();
 	}
 
-	void clear() {
-	    tr.clear(tr.root);
-	}
-
 	/**
 	 * insert an element.
 	 * return a pair, the first of the pair is
 	 *   the iterator to the new element (or the element that prevented the insertion), 
 	 *   the second one is true if insert successfully, or false.
 	 */
-	pair<iterator, bool> insert(const value_type &value) {}
+	pair<iterator, bool> insert(const value_type &value) {
+	    typename RBT::node *p = tr.insert(value);
+	    if (p == tr.nil)
+	        return pair<iterator, bool>(iterator(this, tr.find(value.first)), false);
+	    return pair<iterator, bool>(iterator(this, p), true);
+	}
 
 	/**
 	 * erase the element at pos.
 	 *
 	 * throw if pos pointed to a bad element (pos == this->end() || pos points an element out of this)
 	 */
-	void erase(iterator pos) {}
+	void erase(iterator pos) {
+	    if (this != pos._map || pos == end())
+            throw invalid_iterator();
+	    tr.erase(pos.p);
+	}
 
 	size_t count(const Key &key) const {
 	    return tr.find(key) != tr.nil;
@@ -418,8 +454,14 @@ private:
 	 * Iterator to an element with key equivalent to key.
 	 *   If no such element is found, past-the-end (see end()) iterator is returned.
 	 */
-	iterator find(const Key &key) {}
-	const_iterator find(const Key &key) const {}
+	iterator find(const Key &key) {
+	    typename RBT::node *p = tr.find(key);
+	    return p == tr.nil ? end() : iterator(this, p);
+	}
+	const_iterator find(const Key &key) const {
+	    const typename RBT::node *p = tr.find(key);
+        return p == tr.nil ? end() : const_iterator(this, p);
+	}
 };
 
 }
