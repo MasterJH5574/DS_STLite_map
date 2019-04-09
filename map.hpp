@@ -280,54 +280,61 @@ private:
 	 */
 
 	class iterator {
-	private:
-		/**
-		 * TODO add data members
-		 *   just add whatever you want.
-		 */
 	public:
-		iterator() {
-			// TODO
-		}
-		iterator(const iterator &other) {
-			// TODO
-		}
+	    map *_map;
+	    RBT *rbt;
+	    typename RBT::node *p;
+
+	public:
+		iterator() : _map(nullptr), rbt(nullptr), p(nullptr) {}
+		iterator(const iterator &o) : _map(nullptr), rbt(o.rbt), p(o.p) {}
+		iterator(const map *&__map, const RBT *&_rbt, const typename RBT::node *&_p) : _map(__map), rbt(_rbt), p(_p) {}
 		/**
 		 * return a new iterator which pointer n-next elements
 		 *   even if there are not enough elements, just return the answer.
 		 * as well as operator-
 		 */
-		/**
-		 * TODO iter++
-		 */
-		iterator operator++(int) {}
-		/**
-		 * TODO ++iter
-		 */
-		iterator & operator++() {}
-		/**
-		 * TODO iter--
-		 */
-		iterator operator--(int) {}
-		/**
-		 * TODO --iter
-		 */
-		iterator & operator--() {}
-		/**
-		 * a operator to check whether two iterators are same (pointing to the same memory).
-		 */
-		value_type & operator*() const {}
-		bool operator==(const iterator &rhs) const {}
-		/**
-		 * some other operator for iterator.
-		 */
-		bool operator!=(const iterator &rhs) const {}
 
-		/**
-		 * for the support of it->first. 
-		 * See <http://kelvinh.github.io/blog/2013/11/20/overloading-of-member-access-operator-dash-greater-than-symbol-in-cpp/> for help.
-		 */
-		value_type* operator->() const noexcept {}
+		iterator operator++(int) {
+            if (*this == _map->end())
+                throw invalid_iterator();
+            iterator res(*this);
+		    p = p->next;
+		    return res;
+		}
+		iterator &operator++() {
+            if (*this == _map->end())
+                throw invalid_iterator();
+		    p = p->next;
+		    return *this;
+		}
+		iterator operator--(int) {
+		    if (*this == _map->begin())
+		        throw invalid_iterator();
+		    iterator res(*this);
+            p = p->last;
+            return res;
+		}
+		iterator &operator--() {
+            if (*this == _map->begin())
+                throw invalid_iterator();
+            p = p->last;
+            return *this;
+		}
+
+		value_type &operator*() const {
+		    return p->value;
+		}
+		value_type* operator->() const noexcept {
+		    return &(p->value);
+		}
+
+        bool operator==(const iterator &o) const {
+            return _map == o._map && rbt == o.rbt && p == o.p;
+        }
+        bool operator!=(const iterator &o) const {
+            return _map != o._map || rbt != o.rbt || p != o.p;
+        }
 	};
 	using const_iterator = iterator;
 
