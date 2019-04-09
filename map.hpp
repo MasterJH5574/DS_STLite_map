@@ -23,8 +23,9 @@ private:
             value_type value;
             bool color; // 0 -> black, 1 -> red
             node *son[2], *fa;
-            node *last, next;
+            node *last, *next;
 
+            node() {}
             node(const value_type &val, node* _nil = nullptr) : value(val) {
                 color = 0;
                 last = next = _nil;
@@ -35,6 +36,24 @@ private:
         size_t _size;
         Compare cmp;
 
+        void construct(node *&o, node *oo, node *f, node *oo_nil, node *&last_create) {
+            if (oo == oo_nil) {
+                o = nil;
+                return;
+            }
+            o = new node;
+            o->fa = f;
+            o->color = oo->color;
+            o->value = oo->value;
+
+            construct(o->son[0], oo->son[0], o, oo_nil, last_create);
+
+            last_create->next = o;
+            o->last = last_create;
+            last_create = o;
+
+            construct(o->son[1], oo->son[1], o, oo_nil, last_create);
+        }
     public:
         RBT() {
             nil = new node();
@@ -43,10 +62,31 @@ private:
             root = nil;
             _size = 0;
         }
+        RBT(const RBT &o) {
+            nil = new node();
+            nil->son[0] = nil->son[1] = nil->fa = nil;
+
+            node *last_create = nil;
+            construct(root, o.root, nil, o.nil, last_create);
+            last_create->next = nil;
+            nil->last = last_create;
+        }
         ~RBT() {
             if (root != nil)
                 clear(root);
             delete nil;
+        }
+        RBT &operator=(const RBT &o) {
+            if (this == &o)
+                return *this;
+
+            if (root != nil)
+                clear(root);
+            root = nullptr;
+            node *last_create = nil;
+            construct(root, o.root, nil, o.nil, last_create);
+            last_create->next = nil;
+            nil->last = last_create;
         }
 
         void clear(const node *p) {
@@ -146,10 +186,73 @@ private:
             q->color = 1;
 
             insert_maintain(q);
+            nil->color = 0;
+            nil->son[0] = nil->son[1] = nil->fa = nil->next = nil->last = nil;
         }
 
-        void erase(node *z) { //TODO
+        void swap_info(node *x, node *y) {
+            node *tmp1 = new node(x), *tmp2 = new node(y);
+
+            x->son[0]->fa = tmp1, x->son[1]->fa = tmp1;
+            x->fa->son[x->fa->son[1] == x] = tmp1;
+            x->last->next = tmp1, x->next->last = tmp1;
+
+            y->son[0]->fa = tmp2, y->son[1]->fa = tmp2;
+            y->fa->son[y->fa->son[1] == y] = tmp2;
+            y->last->next = tmp2, y->next->last = tmp2;
+
+            &y = &tmp1, &x = &tmp2;
+
+            tmp1->son[0]->fa = y, tmp1->son[1]->fa = y;
+            tmp1->fa->son[tmp1->fa->son[1] == tmp1] = y;
+            tmp1->last->next = y, tmp1->next->last = y;
+
+            tmp2->son[0]->fa = x, tmp2->son[1]->fa = x;
+            tmp2->fa->son[tmp2->fa->son[1] == tmp2] = x;
+            tmp2->last->next = x, tmp2->next->next = x;
+
+            delete tmp1;
+            delete tmp2;
+        }
+
+        void erase_maintain(node *x) {
+            while (x != root && x->color == 0) {
+                int l = x->fa->son[1] == x, r = l ^ 1;
+                node *w = x->fa->son[r];
+                if (w->color == 1) {
+                    w->color = 0;
+                    x->fa->color = 1;
+                    rotate(w);
+                    w = x->fa->son[r];
+                }
+                if (w->son[0]->color == 0 && w->son[1]->color == 0) {
+                    w->color = 1;
+                    x = x->fa;
+                } else {
+                    if (w->son[r]->color == 0) {
+                        w->son[l]->color = 0;
+                        w->color = 1;
+                        rotate(w->son[l]);
+                        w = x->fa->son[r];
+                    }
+                    w->color = x->fa->color;
+                    x->fa->color = 0;
+                    w->son[r]->color = 0;
+                    rotate(x->fa->son[r]);
+                    break;
+                }
+            }
+            x->color = 0;
+        }
+
+        void erase(node *z) {
             node *y = z->son[0] == nil || z->son[1] == nil ? z : z->next;
+            if (y != z) {
+                swap_info(y, z);
+                node *t = y;
+                y = z, z = t;
+            }
+
             node *x = y->son[0] != nil ? y->son[0] : y->son[1];
             x->fa = y->fa;
             if (y->fa == nil)
@@ -157,9 +260,14 @@ private:
             else
                 y->fa->son[y->fa->son[1] == y] = x;
 
-            if (y != z)
-                z->value = y->value;
+            if (y->color == 0)
+                erase_maintain(x);
+            nil->color = 0;
+            nil->son[0] = nil->son[1] = nil->fa = nil->next = nil->last = nil;
 
+            y->last->next = y->next;
+            y->next->last = y->last;
+            delete y;
         }
     } tr;
 
@@ -223,19 +331,10 @@ private:
 	};
 	using const_iterator = iterator;
 
-	/**
-	 * TODO two constructors
-	 */
-	map() {}
-	map(const map &other) {}
-	/**
-	 * TODO assignment operator
-	 */
-	map &operator=(const map &other) {}
-	/**
-	 * TODO Destructors
-	 */
-	~map() {}
+    map() {}
+    map(const map &other) = default;
+    ~map() = default;
+    map &operator=(const map &o) = default;
 
 	T& at(const Key &k) {
         typename RBT::node *p = tr.find(k);
@@ -283,10 +382,9 @@ private:
 	    return tr.size();
 	}
 
-	/**
-	 * clears the contents
-	 */
-	void clear() {}
+	void clear() {
+	    tr.clear(tr.root);
+	}
 
 	/**
 	 * insert an element.
