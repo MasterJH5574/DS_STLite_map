@@ -9,9 +9,9 @@
 namespace sjtu {
 
 template<
-	class Key,
-	class T,
-	class Compare = std::less<Key>
+    class Key,
+    class T,
+    class Compare = std::less<Key>
 > class map {
 public:
     typedef pair<const Key, T> value_type;
@@ -327,59 +327,59 @@ public:
         }
     } tr;
 
-	/**
-	 * see BidirectionalIterator at CppReference for help.
-	 *
-	 * if there is anything wrong throw invalid_iterator.
-	 *     like it = map.begin(); --it;
-	 *       or it = map.end(); ++end();
-	 */
+    /**
+     * see BidirectionalIterator at CppReference for help.
+     *
+     * if there is anything wrong throw invalid_iterator.
+     *     like it = map.begin(); --it;
+     *       or it = map.end(); ++end();
+     */
 
 public:
     class const_iterator;
-	class iterator {
-	    friend void map::erase(iterator pos);
-	    friend const_iterator;
+    class iterator {
+        friend void map::erase(iterator pos);
+        friend const_iterator;
 
-	    typedef pair<const Key, T> value_type;
-	    typedef value_type&         reference;
-	    typedef value_type*           pointer;
+        typedef pair<const Key, T> value_type;
+        typedef value_type&         reference;
+        typedef value_type*           pointer;
 
     private:
-	    map *_map;
-	    typename RBT::node *p;
+        map *_map;
+        typename RBT::node *p;
 
-	public:
-		iterator() : _map(nullptr), p(nullptr) {}
-		iterator(const iterator &o) : _map(o._map), p(o.p) {}
-		iterator(map *__map, typename RBT::node *_p) : _map(__map), p(_p) {}
+    public:
+        iterator() : _map(nullptr), p(nullptr) {}
+        iterator(const iterator &o) : _map(o._map), p(o.p) {}
+        iterator(map *__map, typename RBT::node *_p) : _map(__map), p(_p) {}
 
-		iterator operator++(int) {
+        iterator operator++(int) {
             if (*this == _map->end())
                 throw invalid_iterator();
             iterator res(*this);
-		    p = p->next;
-		    return res;
-		}
-		iterator &operator++() {
+            p = p->next;
+            return res;
+        }
+        iterator &operator++() {
             if (*this == _map->end())
                 throw invalid_iterator();
-		    p = p->next;
-		    return *this;
-		}
-		iterator operator--(int) {
-		    if (*this == _map->begin())
-		        throw invalid_iterator();
+            p = p->next;
+            return *this;
+        }
+        iterator operator--(int) {
+            if (*this == _map->begin())
+                throw invalid_iterator();
             iterator res(*this);
             if (p == _map->tr.nil) {
                 p = _map->tr.root;
                 while (p->son[1] != _map->tr.nil)
                     p = p->son[1];
-		    } else
+            } else
                 p = p->last;
             return res;
-		}
-		iterator &operator--() {
+        }
+        iterator &operator--() {
             if (*this == _map->begin())
                 throw invalid_iterator();
             if (p == _map->tr.nil) {
@@ -389,14 +389,14 @@ public:
             } else
                 p = p->last;
             return *this;
-		}
+        }
 
-		reference operator*() const {
-		    return *p->value;
-		}
-		pointer operator->() const noexcept {
-		    return &(*p->value);
-		}
+        reference operator*() const {
+            return *p->value;
+        }
+        pointer operator->() const noexcept {
+            return &(*p->value);
+        }
 
         bool operator==(const iterator &o) const {
             return _map == o._map && p == o.p;
@@ -410,7 +410,7 @@ public:
         bool operator!=(const const_iterator &o) const {
             return _map != o._map || p != o.p;
         }
-	};
+    };
     class const_iterator {
         friend iterator;
 
@@ -500,91 +500,91 @@ public:
         tr.root = tr.nil;
     }
 
-	T &at(const Key &k) {
+    T &at(const Key &k) {
         typename RBT::node *p = tr.find(k);
-	    if (p != tr.nil)
-	        return p->value->second;
-	    throw index_out_of_bound();
-	}
-	const T& at(const Key &k) const {
+        if (p != tr.nil)
+            return p->value->second;
+        throw index_out_of_bound();
+    }
+    const T& at(const Key &k) const {
         const typename RBT::node *p = tr.find(k);
         if (p != tr.nil)
             return p->value->second;
         throw index_out_of_bound();
-	}
+    }
 
-	T &operator[](const Key &k) {
-	    typename RBT::node *p = tr.find(k);
-	    if (p == tr.nil)
-	        return tr.insert(value_type(k, T()))->value->second;
-	    return p->value->second;
-	}
-	const T& operator[](const Key &k) const {
+    T &operator[](const Key &k) {
+        typename RBT::node *p = tr.find(k);
+        if (p == tr.nil)
+            return tr.insert(value_type(k, T()))->value->second;
+        return p->value->second;
+    }
+    const T& operator[](const Key &k) const {
         const typename RBT::node *p = tr.find(k);
         if (p != tr.nil)
             return p->value->second;
         throw index_out_of_bound();
-	}
+    }
 
-	iterator begin() {
-	    typename RBT::node *p = tr.begin();
-	    return iterator(this, p);
-	}
-	const_iterator cbegin() const {
+    iterator begin() {
+        typename RBT::node *p = tr.begin();
+        return iterator(this, p);
+    }
+    const_iterator cbegin() const {
         const typename RBT::node *p = tr.cbegin();
         return const_iterator(this, p);
-	}
-	iterator end() {
-	    typename RBT::node *p = tr.end();
-	    return iterator(this, p);
-	}
-	const_iterator cend() const {
+    }
+    iterator end() {
+        typename RBT::node *p = tr.end();
+        return iterator(this, p);
+    }
+    const_iterator cend() const {
         const typename RBT::node *p = tr.cend();
         return const_iterator(this, p);
-	}
+    }
 
-	bool empty() const {
-	    return tr._size == 0;
-	}
-	size_t size() const {
-	    return tr._size;
-	}
+    bool empty() const {
+        return tr._size == 0;
+    }
+    size_t size() const {
+        return tr._size;
+    }
 
-	/**
-	 * insert an element.
-	 * return a pair, the first of the pair is
-	 *   the iterator to the new element (or the element that prevented the insertion), 
-	 *   the second one is true if insert successfully, or false.
-	 */
-	pair<iterator, bool> insert(const value_type &value) {
-	    typename RBT::node *p = tr.insert(value);
-	    if (p == tr.nil)
+    /**
+     * insert an element.
+     * return a pair, the first of the pair is
+     *   the iterator to the new element (or the element that prevented the insertion),
+     *   the second one is true if insert successfully, or false.
+     */
+    pair<iterator, bool> insert(const value_type &value) {
+        typename RBT::node *p = tr.insert(value);
+        if (p == tr.nil)
             return pair<iterator, bool>(iterator(this, tr.find(value.first)), false);
-	    return pair<iterator, bool>(iterator(this, p), true);
-	}
+        return pair<iterator, bool>(iterator(this, p), true);
+    }
 
-	/**
-	 * erase the element at pos.
-	 * throw if pos pointed to a bad element (pos == this->end() || pos points an element out of this)
-	 */
-	void erase(iterator pos) {
-	    if (this != pos._map || pos == end())
+    /**
+     * erase the element at pos.
+     * throw if pos pointed to a bad element (pos == this->end() || pos points an element out of this)
+     */
+    void erase(iterator pos) {
+        if (this != pos._map || pos == end())
             throw invalid_iterator();
-	    tr.erase(pos.p);
-	}
+        tr.erase(pos.p);
+    }
 
-	size_t count(const Key &key) const {
-	    return tr.find(key) != tr.nil ? 1 : 0;
-	}
+    size_t count(const Key &key) const {
+        return tr.find(key) != tr.nil ? 1 : 0;
+    }
 
-	iterator find(const Key &key) {
-	    typename RBT::node *p = tr.find(key);
-	    return p == tr.nil ? end() : iterator(this, p);
-	}
-	const_iterator find(const Key &key) const {
-	    const typename RBT::node *p = tr.find(key);
+    iterator find(const Key &key) {
+        typename RBT::node *p = tr.find(key);
+        return p == tr.nil ? end() : iterator(this, p);
+    }
+    const_iterator find(const Key &key) const {
+        const typename RBT::node *p = tr.find(key);
         return p == tr.nil ? cend() : const_iterator(this, p);
-	}
+    }
 };
 
 }
